@@ -1,18 +1,34 @@
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { task, types } from "hardhat/config";
+import { subtask, task, types } from "hardhat/config";
+import { TASK_DEPLOY } from "hardhat-deploy"
 
-import { deployFactory } from "../deployers/deploy";
+import { deployFactoryAndRouter } from "../deployers/deploy";
 
 const deployUniswap = async(hre: HardhatRuntimeEnvironment, addTokens?: boolean) => {
     const { abi } = await hre.artifacts.readArtifact('Lock')
-    // console.log('ABI', abi)
-    console.log('add tokens', addTokens)
-    // console.log(hre.network.config)
     const signer = (await hre.ethers.getSigners())[0]
-    await deployFactory(signer, signer)
+    const { factory, router } = await deployFactoryAndRouter(signer, signer)
+    const r = await router.deployed()
+    
+    console.log(factory.address, router.address)
+
+    const deployments = await hre.deployments.all()
+    const artifacts = await hre.artifacts.getArtifactPaths()
+
+    console.log(deployments)
+    console.log(artifacts)
+
+    
+    await hre.run(TASK_DEPLOY)
 }
+
+subtask("deploy-after", "deploys after")
+.setAction(async(taskArgs, hre) => {
+    console.log(hre.config.paths.artifacts)
+    
+})
 
 
 task("deploy-uniswap0", "Deploy Uniswap Suite")
@@ -25,7 +41,7 @@ task("deploy-uniswap0", "Deploy Uniswap Suite")
 
 task("deploy-uniswap", "DEPLOYYY")
 .setAction(async(taskArgs, hre) => {
-    await hre.run("deploy")
+    await hre.run("deploy", { write: true })
     await deployUniswap(hre, true)
 })
 
